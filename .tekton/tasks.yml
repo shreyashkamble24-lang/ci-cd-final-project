@@ -1,0 +1,35 @@
+apiVersion: tekton.dev/v1
+kind: Task
+metadata:
+  name: cleanup
+spec:
+  description: Clean the workspace before running the pipeline.
+  workspaces:
+    - name: source
+  steps:
+    - name: remove-old-files
+      image: alpine:3.20
+      script: |
+        #!/bin/sh
+        set -eu
+        find "$(workspaces.source.path)" -mindepth 1 -maxdepth 1 -exec rm -rf {} +
+
+---
+apiVersion: tekton.dev/v1
+kind: Task
+metadata:
+  name: nose
+spec:
+  description: Install project dependencies and run the Python unit tests.
+  workspaces:
+    - name: source
+  steps:
+    - name: run-tests
+      image: python:3.9
+      workingDir: $(workspaces.source.path)
+      script: |
+        #!/bin/sh
+        set -eu
+        pip install --no-cache-dir -r requirements.txt
+        pip install --no-cache-dir nose
+        nosetests -v
